@@ -1,0 +1,8 @@
+analysis/*.o*
+analysis/*.e*
+data/*
+output/*
+**pyc
+test.py
+*archive*
+**ipynb

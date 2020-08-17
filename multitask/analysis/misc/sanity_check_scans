@@ -1,0 +1,19 @@
+import nibabel as nib
+import matplotlib.pyplot as plt
+import img_helpers as ih
+import numpy as np
+s = nib.load('/Users/delvin/Downloads/BC0001_project_726317_V01_Sagittal_3D_T1_001_stripped.nii')
+c = nib.load('/Users/delvin/Downloads/BC0008_project_748140_V01_Coronal_3D_T1_001_stripped.nii')
+s_arr = np.asarray(s.dataobj)
+c_arr = np.asarray(c.dataobj)
+
+c_arr.shape
+s_arr.shape
+
+plt.imshow(np.rot90(c_arr[45, :, :], 1));plt.show() # sagittal
+plt.imshow(np.rot90(c_arr[:, 50, :], 1));plt.show() # coronal
+plt.imshow(c_arr[:, :, 130].T);plt.show() # axial
+
+plt.imshow(np.rot90(s_arr[40, :, :], 1));plt.show() # sagittal
+plt.imshow(np.rot90(s_arr[:, 100, :], 1));plt.show() # coronal
+plt.imshow(s_arr[:, :, 150].T);plt.show() # axial
