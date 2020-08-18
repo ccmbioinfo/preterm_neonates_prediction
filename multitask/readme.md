@@ -1,9 +1,9 @@
-# Pre-term Neonates - using T1 (and T2s) to predict adverse outcomes 
+## Pre-term Neonates - using T1 (and T2s) to predict adverse outcomes 
  Delvin So
  
 ### Set-up
 1. Git clone this environment, preferably somewhere like your `home` directory on the hpf
-2. Install conda environment using `conda install --yes --file requirements.txt`
+2. Install conda environment using `conda env create -f environment.yml`
 3. Preprocess images using `prep_v0*_stretch.sh`
     * the input files can be found in `./data/ubc_misc/ubc_masks_v0*, ./data/ubc_misc/ubc_ss_v0*, and ./data/ubc_misc/Prem-UBC_WMI`
     * output will be dumped into `./output/`
@@ -22,9 +22,6 @@ There should be a few absolute directories in `prep_v0*_stretch.sh and run_nnet.
                 - crops the brain, centers, pads each slice to 128x128, trimming start and end slices of the volume using mean pixel intensity as a threshold
             - applies the same operation to a corresponding mask
         - outputs several images and diagnostics for each step of the pre-processing which is dumped into `./figures`, eg. 
-        
-        ![Sanity check for pre-processing](./figures/BC0014_figure_check.png)
-        
     - dump_npy_to_tif.py
         - dumps the numpy images to tif for white matter injury segmentation model
 
