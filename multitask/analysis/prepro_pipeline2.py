@@ -74,9 +74,6 @@ def main(root_dir, image_dir, masks_dir, out_dir, prefix, seg_masks_dir = None):
     # names between the images and masks are consistent up to the last underscore so we can use this to our advantage
     fns = pd.Series(imgs).str.extract(r'(BC.*_)').values.tolist()
 
-    # ref = np.asarray(nib.load('/Users/delvin/Downloads/BC0133.nii').dataobj)[:, :, :, 0] # 413L, 367W
-    # plt.hist(ref.ravel()[ref.ravel() != 0], bins=64)
-    # plt.show()
     for f in fns:
         f = f[0]
 
@@ -94,25 +91,17 @@ def main(root_dir, image_dir, masks_dir, out_dir, prefix, seg_masks_dir = None):
         # input_image_np = sitk.GetArrayFromImage(input_image)
         # print('Shape of Original Image: {}'.format(input_image_np.shape))
         #
-        #
         # cast_image = sitk.Cast(input_image, sitk.sitkFloat32)
         # mask_image = sitk.ReadImage(mask, sitk.sitkUInt8)
         # corrector = sitk.N4BiasFieldCorrectionImageFilter()
         # corrector.SetMaximumNumberOfIterations([200] * 4) # iters * fitting levels
         # output_image = corrector.Execute(cast_image, mask_image)
         #
-        # out_f = os.path.join(out_n4b,
-        #                      f + 'BC' + '.nii.gz')
+        # out_f = os.path.join(out_n4b, f + 'BC' + '.nii.gz')
         # print('Saving N4 Bias Field Corrected Image to: {}'.format(out_f))
         # sitk.WriteImage(output_image, out_f)
         # n4_corrected_np = sitk.GetArrayFromImage(output_image)
         # print('Shape after N4 Bias: {}'.format(n4_corrected_np.shape))
-
-        # print('Performing Normalization for {}'.format(out_f))
-        # lsq_norm = lsq_normalize(img_fn = out_f,
-        #                          mask_fn = mask,
-        #                          write_to_disk = True,
-        #                          output_dir = os.path.join(out_dir, 'normalized'))
 
 
         # read in nifti and convert to np array
@@ -136,15 +125,6 @@ def main(root_dir, image_dir, masks_dir, out_dir, prefix, seg_masks_dir = None):
         # stretched_stack.show()
         stretched_stack.savefig(os.path.join(out_norm, f.split('_')[0] + '_stretched.png'))
         stretched_stack.clear()
-
-
-        # norm = normalize_volume(np.asarray(nib.load(out_f).dataobj))
-        # pxl_arr = norm
-
-        # norm = kde_normalize(img = nib.load(out_f), mask = nib.load(mask), contrast = 'largest', norm_value = 1)
-        # out_fn = (os.path.join(out_dir, 'normalized', f + '_kde.nii'))
-        # io.save_nii(norm, out_fn, is_nii=True)
-        # pxl_arr = np.asarray(norm.dataobj)
 
         print('Shape after Normalization: {}'.format(pxl_arr.shape)) # should not have changed!
 
@@ -265,27 +245,6 @@ if __name__ == '__main__':
     for arg in vars(args):
         print(arg + ": " + str(getattr(args, arg)))
 
-    # root_dir = 'test_pipeline'
-    # image_dir = 'ss'
-    # mask_dir = 'masks'
-    # out_dir = 'test_pipeline_out'
-    # seg_masks_dir = 'seg_masks_dir'
-    # masks_dir = mask_dir
-    # prefix = ''
     main(root_dir = args.root_path, image_dir = args.image_dir, masks_dir= args.mask_dir,
          out_dir = args.out_dir, seg_masks_dir = args.seg_masks_dir, prefix = args.prefix)
-    # main(root_dir = root_dir, image_dir = image_dir, masks_dir= mask_dir, out_dir = out_dir, seg_masks_dir = seg_masks_dir, prefix = prefix)
-# python3 prepro_pipeline.py --root_path=/home/delvinso/neuro/data/ubc_misc \
-#     --image_dir=ubc_ss \
-#     --mask_dir=ubc_masks \
-#     --seg_masks_dir=sPrem-UBC_WMI/WMI_v01_renamed\
-#     --prefix=birth\
-#     --out_dir=/home/delvinso/neuro/output/test_prep_histo_norm
-
-# python3 prepro_pipeline.py --root_path=/home/delvinso/neuro/data/ubc_misc \
-#     --image_dir=ubc_ss_v02 \
-#     --mask_dir=ubc_masks_v02 \
-#     --seg_masks_dir=Prem-UBC_WMI/WMI_v02_renamed\
-#     --prefix=term\
-#     --out_dir=/home/delvinso/neuro/output/test_prep_histo_norm2
 
