@@ -111,10 +111,9 @@ def main(root_dir, image_dir, masks_dir, out_dir, prefix, seg_masks_dir = None):
 
         # TODO: save the output file
         # print(input_image_np.mean())
-        # Steven Ufkes: I think normalization should be done after reslicing, padding, etc.
-        #pxl_arr = ih.normalize_volume(input_image_np) # before change
-        pxl_arr = input_image_np
-        
+        pxl_arr = ih.normalize_volume(input_image_np)
+        # print(pxl_arr.mean())
+
 
         # plot the original and normalized images, separately
         og_stack = sample_stack(np.transpose(input_image_np, (2, 1, 0)), transpose = False,
@@ -140,11 +139,6 @@ def main(root_dir, image_dir, masks_dir, out_dir, prefix, seg_masks_dir = None):
             print('No Segmentation Mask for {}'.format(f))
             mask_arr = np.zeros(pxl_arr.shape)
 
-        # Steven Ufkes: Load label mask (brain mask)
-        brain_mask_image = nib.load(mask)
-        print('Brain mask found for {}'.format(f))
-        brain_mask_arr = np.asarray(brain_mask_image.dataobj)
-            
         pad = True # passes to fit image_mask to pad instead of resizing and interpolating the images
         for axis in range(3):
             # find first and last slice which exceeds the mean intensity
@@ -152,36 +146,27 @@ def main(root_dir, image_dir, masks_dir, out_dir, prefix, seg_masks_dir = None):
             print('Reslicing scans {}..'.format(view_dict[axis]))
             print("pad:",pad)
             if axis == 0:
-                # Steven Ufkes: Use the mask to find the start and end pixels, so that all modalities stay aligned. Also include last slice (first:last+1)
-                first, last = ih.find_start_end(brain_mask_arr, verbose = True, axis = axis)
-                #first, last = ih.find_start_end(pxl_arr, verbose = True, axis = axis) # old way
+                first, last = ih.find_start_end(pxl_arr, verbose = True, axis = axis)
                 # new_arr = ih.fit_resize_image(pxl_arr[first:last, :, :], axis = axis)
-                #new_arr, new_mask = ih.fit_image_mask(pxl_arr[first:last, :, :], axis = axis, mask = mask_arr[first:last, :, :], pad = pad) # old way
-                new_arr, new_mask = ih.fit_image_mask(pxl_arr[first:last, :, :], brain_mask_arr[first:last, :, :], axis = axis, mask = mask_arr[first:last, :, :], pad = pad)
+                new_arr, new_mask = ih.fit_image_mask(pxl_arr[first:last, :, :], axis = axis, mask = mask_arr[first:last, :, :], pad = pad)
                 
                 new_mask[new_mask != 0] = 1
                 # sag_np = new_arr[:, :, :, 0]
                 # sag_mask = new_mask[:, :, :, 0]
                 # sag_first, sag_last = first, last
             elif axis == 1:
-                # Steven Ufkes: Use the mask to find the start and end pixels, so that all modalities stay aligned.
-                first, last = ih.find_start_end(brain_mask_arr, verbose = True, axis = axis)
-                #first, last = ih.find_start_end(pxl_arr, verbose = True, axis = axis) # old way
+                first, last = ih.find_start_end(pxl_arr, verbose = True, axis = axis)
                 # new_arr = ih.fit_resize_image(pxl_arr[:, first:last, :], axis = axis)
-                #new_arr, new_mask = ih.fit_image_mask(pxl_arr[:, first:last, :], axis = axis, mask = mask_arr[:, first:last, :], pad = pad) # old way
-                new_arr, new_mask = ih.fit_image_mask(pxl_arr[:, first:last, :], brain_mask_arr[:, first:last, :], axis = axis, mask = mask_arr[:, first:last, :], pad = pad)
+                new_arr, new_mask = ih.fit_image_mask(pxl_arr[:, first:last, :], axis = axis, mask = mask_arr[:, first:last, :], pad = pad)
                 
                 new_mask[new_mask != 0] = 1
                 # cor_np = new_arr[:, :, :, 0]
                 # cor_mask = new_mask[:, :, :, 0]
                 # cor_first, cor_last = first, last
             elif axis == 2:
-                # Steven Ufkes: Use the mask to find the start and end pixels, so that all modalities stay aligned.
-                first, last = ih.find_start_end(brain_mask_arr, verbose = True, axis = axis)
-                #first, last = ih.find_start_end(pxl_arr, verbose = True, axis = axis) # old way
+                first, last = ih.find_start_end(pxl_arr, verbose = True, axis = axis)
                 # new_arr = ih.fit_resize_image(pxl_arr[:, :, first:last], axis = axis)
-                #new_arr, new_mask = ih.fit_image_mask(pxl_arr[:, :, first:last], axis = axis, mask = mask_arr[:, :, first:last], pad = pad)# old way
-                new_arr, new_mask = ih.fit_image_mask(pxl_arr[:, :, first:last], brain_mask_arr[:, :, first:last], axis = axis, mask = mask_arr[:, :, first:last], pad = pad)
+                new_arr, new_mask = ih.fit_image_mask(pxl_arr[:, :, first:last], axis = axis, mask = mask_arr[:, :, first:last], pad = pad)
                 
                 new_mask[new_mask != 0] = 1
                 axi_np = new_arr[:, :, :, 0]
@@ -195,8 +180,7 @@ def main(root_dir, image_dir, masks_dir, out_dir, prefix, seg_masks_dir = None):
             new_fn = f'{prefix}_' + f.split('_')[0] + '_ss.npy'
             new_fn_abs = os.path.join(out_dir,view_dict[axis] , new_fn)
             print(new_fn_abs)
-            
-            new_arr = ih.normalize_volume(new_arr) # Steven Ufkes: I added this line because it seems like normalization should be done after reslicing, padding etc.
+
             np.save(arr = new_arr, file = new_fn_abs)
 
             # saving down mask

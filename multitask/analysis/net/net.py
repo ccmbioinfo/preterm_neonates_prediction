@@ -17,9 +17,15 @@ class Net(nn.Module):
         elif model_name == 'resnet50':
             self.model = models.resnet50(pretrained = True)
             self.model = nn.Sequential(*list(self.model.children())[:-2]) # layer before the average pool, 2048
+
+            # Steven Ufkes: Try to freeze the weights as Delvin did for resnet18.
+            set_parameter_requires_grad(self.model, True) # added by Steven Ufkes 2020-10-29.
         elif model_name == 'resnet101':
-            self.model = models.resnet101(pretraiend = True)
+            self.model = models.resnet101(pretrained = True)
             self.model = nn.Sequential(*list(self.model.children())[:-2])  # layer before the average pool, 2048
+
+            # Steven Ufkes: Try to freeze the weights as Delvin did for resnet18. I'm not sure if this is correct. Give it a try to see if it works.
+            set_parameter_requires_grad(self.model, True) # added by Steven Ufkes 2020-10-29.
         elif model_name == 'resnet18':
             self.model = models.resnet18(pretrained = True)
             self.model = nn.Sequential(*list(self.model.children())[:-2]) # layer before the average pool, 512
@@ -35,9 +41,23 @@ class Net(nn.Module):
         self.dropout = nn.Dropout(p=0.5)
         self.heads = nn.ModuleList([])
 
+        # Steven Ufkes 2020-10-30 : I modified the section below to try to get other CNNs to work.
+        # Original:
+#        for n in range(num_heads):
+#            self.heads.append(nn.Sequential(
+#                nn.Linear(512, 1) # 256 for alexnet, 512 for vgg and for resnet18, 2048 for resnet50,101, 152
+#                # TODO: make robust to covariates
+#            ))
+        # New:
+        model_num_features_last_layer_dict = {'alexnet':256,
+                               'vg11_bn':512,
+                               'resnet50':2048,
+                               'resnet101':2048,
+                               'resnet18':512}
+        num_features_last_layer = model_num_features_last_layer_dict[model_name]
         for n in range(num_heads):
             self.heads.append(nn.Sequential(
-                nn.Linear(512, 1) # 256 for alexnet, 512 for vgg and for resnet18, 2048 for resnet50,101, 152
+                nn.Linear(num_features_last_layer, 1) # 256 for alexnet, 512 for vgg and for resnet18, 2048 for resnet50,101, 152
                 # TODO: make robust to covariates
             ))
 

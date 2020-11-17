@@ -2,6 +2,7 @@ analysis/*.o*
 analysis/*.e*
 data/*
 output/*
+config/*
 **pyc
 test.py
 *archive*

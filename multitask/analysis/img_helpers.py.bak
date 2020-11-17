@@ -5,8 +5,8 @@ from skimage.exposure import equalize_hist, rescale_intensity
 
 def normalize_volume(volume):
     # contrast stretch # Steven says: what is the point of 
-    p_btm = np.percentile(volume.flatten()[volume.flatten() != 0], 1)
-    p_top = np.percentile(volume.flatten()[volume.flatten() != 0], 100)
+#    p_btm = np.percentile(volume.flatten()[volume.flatten() != 0], 1)
+#    p_top = np.percentile(volume.flatten()[volume.flatten() != 0], 100)
     # this gives a window level of 600-200 = 400 and a window width of 200
     #p_btm = 200
     #p_top = 600
@@ -18,7 +18,7 @@ def normalize_volume(volume):
 #    print("Max:", volume.max())
 #    print("Mean:", volume.mean())
 #    print("Num nonzero voxels:", np.count_nonzero(volume))
-    volume = rescale_intensity(volume, in_range=(p_btm, p_top))
+#    volume = rescale_intensity(volume, in_range=(p_btm, p_top))
 #    print("Volume after contrast stretch:")
 #    print("Min:", volume.min())
 #    print("Max:", volume.max())
@@ -108,25 +108,7 @@ def series_mean_intensity(volume, axis = 2):
 
     return(np.asarray(px_list))
 
-def find_start_end(volume, verbose=True, axis=2):
-    """
-    :param volume:
-    :return: first (int) and last (int), corresponding to the first and last slices with a non-black pixel (a pixel with value greater than the minimum pixel intensity of the image).
-    """
-    min_val = volume.min()
-
-    # Swap the axes so that the axis of interest is first; work along first axis in the rest of this function. Get max value of each slice
-    volume = np.swapaxes(volume, 0, axis)
-    max_of_slices = volume.max(axis=(1,2))
-
-    first_idx = np.argmax(max_of_slices > min_val)
-    last_idx = volume.shape[0] - np.argmax(max_of_slices[::-1] > min_val) #-1 # this is the last index + 1, for consistency with the previous methods and the rest of the code.
-
-    return(first_idx, last_idx)
-    
-        
-
-def find_start_end_old(volume, verbose = True, axis = 2): # Steven Ufkes: This is the original version of find_start_end
+def find_start_end(volume, verbose = True, axis = 2):
     """
     :param volume:
     :return: first (int) and last (int) , corresponding to the first and last slices with mean pixel intensity
@@ -192,14 +174,12 @@ def pad_image(data):
         uniform_data[pad_size_l:pad_size_r, :] = data
     return uniform_data
 
-#def fit_image_mask(data, axis, mask = None, pad = True): # old way
-def fit_image_mask(data, brain_mask, axis, mask = None, pad = True):
+def fit_image_mask(data, axis, mask = None, pad = True):
     """
     adapted code of
     - crops out brain (thanks to Pouria)
     - if pad, pad else resize to 128 x 128 #TODO make this an argument
     :param data:
-    :param brain_mask:
     :param axis:
     :param mask:
     :param pad:
@@ -215,23 +195,16 @@ def fit_image_mask(data, brain_mask, axis, mask = None, pad = True):
         if axis == 2:
             c_data = np.rot90(data[:, :, sample], 1) # axial
             m_data = np.rot90(mask[:, :, sample], 1)
-            bg_data = np.rot90(brain_mask[:, :, sample], 1) # Steven Ufkes: (new line) Use the actual brain mask image instead of the nonzero mask for the actual image.
             # c_data = data[:, :, sample].T # axial
             # m_data = mask[:, :, sample].T
         elif axis == 1:
             c_data = np.rot90(data[:, sample, :], 1)
             m_data = np.rot90(mask[:, sample, :], 1)
-            bg_data = np.rot90(brain_mask[:, sample, :], 1) # Steven Ufkes: (new line) Use the actual brain mask image instead of the nonzero mask for the actual image.
         elif axis == 0:
             # c_data = data[sample, :, :]
             c_data = np.rot90(data[sample, :, :], 1) # sagittal
             m_data = np.rot90(mask[sample, :, :], 1)
-            bg_data = np.rot90(brain_mask[sample, :, :], 1) # Steven Ufkes: (new line) Use the actual brain mask image instead of the nonzero mask for the actual image.
-
-        # Steven Ufkes: Use the actual brain mask image instead of the nonzero mask for the actual image.
-        #bg_mask = c_data != 0 # old line
-        bg_mask = bg_data != 0 # new line
-        
+        bg_mask = c_data != 0
         # print(sum(mask.flatten()))
         if sum(bg_mask.flatten()) == 0: # pure black image
             next

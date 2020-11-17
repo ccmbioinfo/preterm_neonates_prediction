@@ -1,10 +1,8 @@
 import logging
-#import argparse # Steven Ufkes: replaced command line arguments with a JSON config reader.
-import json
+import argparse
 import torch
 import helpers
 import os
-import sys
 import re
 from datetime import datetime
 from run_model import run_model                    # the main training and evaluation loop
@@ -155,39 +153,29 @@ def train_and_eval(model, train_loader, valid_loader, learning_rate, epochs,
             if task == 'multitask':
                 train_df.to_csv(os.path.join(model_outdir, 'best_epoch_training_results.csv'))
                 val_df.to_csv(os.path.join(model_outdir, 'best_epoch_validation_results.csv'))
-# the arguments # Steven Ufkes: replaced command line arguments with a JSON config reader.
-#def get_parser():
-#    parser = argparse.ArgumentParser()
-#    parser.add_argument('--root_path', type = str, required = True, help = 'root directory of MRNet')
-#    parser.add_argument('--manifest_path', type=str, required=True, help = 'absolute path of the manifest file')
-#    parser.add_argument('--outcome', type = str, required = True, help = 'any column in the outcome sheet, or multitask')
-#    parser.add_argument('--view', type = str, required = True, help = 'one of sagittal, axial, coronal')
-#    parser.add_argument('--model_out', type=str, required = True, help = 'output directory')
-#    parser.add_argument('--num_epochs', type = int, required = True, help = 'int, the number of epochs')
-#    parser.add_argument('--learning_rate', type = float, default = 1e-5, help = 'the learning rate')
-#    parser.add_argument('--run_suffix', type=str, default=False, help='suffix to append to end of tensorflow log file')
-#    parser.add_argument('--metrics_every_iter', type = int, default = 20, help = 'calculates metrics every i batches')
-#    parser.add_argument('--tensorboard', type=bool, default=False, help = 'tensorboard logging, false by default')
-#    parser.add_argument('--run_name', type=str, default='my_run',
-#                        help='name of output directory where checkpoints and log is saved')
-#    parser.add_argument('--task', type = str, default = 'regression',
-#                        help = 'regression, classification or multitask. current support is only for binary classification.')
-#    return parser
+# the arguments
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--root_path', type = str, required = True, help = 'root directory of MRNet')
+    parser.add_argument('--manifest_path', type=str, required=True, help = 'absolute path of the manifest file')
+    parser.add_argument('--outcome', type = str, required = True, help = 'any column in the outcome sheet, or multitask')
+    parser.add_argument('--view', type = str, required = True, help = 'one of sagittal, axial, coronal')
+    parser.add_argument('--model_out', type=str, required = True, help = 'output directory')
+    parser.add_argument('--num_epochs', type = int, required = True, help = 'int, the number of epochs')
+    parser.add_argument('--learning_rate', type = float, default = 1e-5, help = 'the learning rate')
+    parser.add_argument('--run_suffix', type=str, default=False, help='suffix to append to end of tensorflow log file')
+    parser.add_argument('--metrics_every_iter', type = int, default = 20, help = 'calculates metrics every i batches')
+    parser.add_argument('--tensorboard', type=bool, default=False, help = 'tensorboard logging, false by default')
+    parser.add_argument('--run_name', type=str, default='my_run',
+                        help='name of output directory where checkpoints and log is saved')
+    parser.add_argument('--task', type = str, default = 'regression',
+                        help = 'regression, classification or multitask. current support is only for binary classification.')
+    return parser
 
 if __name__ == '__main__':
-    # get arguments # Steven Ufkes: replaced command line arguments with a JSON config reader. Did it a goofy way to avoid changing much.
-    #args = get_parser().parse_args()
-    config_path = str(sys.argv[1])
-    with open(config_path, 'r') as f:
-        args = json.load(f)
-    class Args(object):
-        def __init__(self, dictionary):
-            for key, value in dictionary.items():
-                setattr(self, key, value)
-    args = Args(args)    
-    print(args)
-    ## End of goofy argument change.
-    
+    # get arguments
+    args = get_parser().parse_args()
+
     torch.manual_seed(1)
 
     # create model outdir if it doesn't already exist, corresponding to task and view
@@ -197,7 +185,7 @@ if __name__ == '__main__':
 
     # set up the logger
     helpers.set_logger(os.path.join(model_outdir, 'train.log'))
-    # print arguments to logp
+    # print arguments to log
     logging.info('-' * 20 + 'ARGUMENTS' + '-' * 20)
     for arg in vars(args):
         logging.info(arg + ": " + str(getattr(args, arg)))
@@ -214,7 +202,6 @@ if __name__ == '__main__':
                                  view = args.view,
                                  outcome = args.outcome,
                                  manifest_path = args.manifest_path,
-                                 preprocessed_img_dirs = args.preprocessed_img_dirs,
                                  batch_size=1,
                                  return_pid = True)
 
@@ -225,8 +212,7 @@ if __name__ == '__main__':
 
     # the main body
     if args.task == 'multitask':
-        #nnet = Net(mod = 'multitask')
-        nnet = Net(mod = 'multitask', model_name = args.model_name) # Steven Ufkes modified the line above 2020-10-29.
+        nnet = Net(mod = 'multitask')
     else:
         nnet = Net()
 

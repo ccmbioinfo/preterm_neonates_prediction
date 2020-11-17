@@ -11,7 +11,7 @@ import time
 class Dataset(Dataset):
     # define all members and class variables
     def __init__(self, view,  set,root_dir,   manifest_path, outcome,# task,
-                 return_pid, preprocessed_img_dirs=None, transform=None):
+                 return_pid, transform=None):
         """
         A pytorch DataSet for reading in one planar view of a dicom at a time (three planes total)
 
@@ -19,7 +19,6 @@ class Dataset(Dataset):
         :param set: (str) - one of: train, valid (and maybe set in the future)
         :param root_dir:  (str) - root directory, should be something along the lines of 'MRNet-v1.0
         :param transform: (torchvision transforms) - a list of transforms to apply to the DataSet when being fetched
-        :param preprocessed_img_dirs (list of str): - list containing the names of three directories in which the preprocessed images are stored for each of the three color channels.
         """
         self.view = view
         self.transform = transform
@@ -28,7 +27,6 @@ class Dataset(Dataset):
         self.manifest_path = manifest_path
         self.outcome = outcome
         self.return_pid = return_pid
-        self.preprocessed_img_dirs = preprocessed_img_dirs
 
         # read in the manifest
         fn = os.path.join(self.manifest_path)
@@ -97,43 +95,25 @@ class Dataset(Dataset):
     def __getitem__(self, index):
 
         pid = self.task_manifest.iloc[index].study_id
-
-        y = self.get_label(pid)
-        covars = self.get_covariates(pid)
-        
         # img_dir = os.path.join(self.root_dir, 'output', 'ubc_3d', self.view, 'birth_' + pid + '_ss.npy')
 
         # change this to the path of the .npys
         # we want to use these ones, which are 128x128. can pad them or change architecture
-
-        # Steven Ufkes: This used to be hardcoded to look for a single image modality in a single directory. I changed it to read three (possibly redundant) modalities from three directories, taken as an argument. By default, this will read all three color channels from the same old directory.
-        if self.preprocessed_img_dirs: # if a list of 3 image directories from which color channels will be taken has been specified.
-            img_dir1 = os.path.join(self.root_dir, 'output', self.preprocessed_img_dirs[0], self.view, 'birth_' + pid + '_ss.npy' )
-            img_dir2 = os.path.join(self.root_dir, 'output', self.preprocessed_img_dirs[1], self.view, 'birth_' + pid + '_ss.npy' )
-            img_dir3 = os.path.join(self.root_dir, 'output', self.preprocessed_img_dirs[2], self.view, 'birth_' + pid + '_ss.npy' )
-        else:
-            img_dir1 = os.path.join(self.root_dir, 'output', 'hardstretch_v01', self.view, 'birth_' + pid + '_ss.npy' )
-            img_dir2 = os.path.join(self.root_dir, 'output', 'hardstretch_v01', self.view, 'birth_' + pid + '_ss.npy' )
-            img_dir3 = os.path.join(self.root_dir, 'output', 'hardstretch_v01', self.view, 'birth_' + pid + '_ss.npy' )
+        img_dir = os.path.join(self.root_dir, 'output', 'hardstretch_v01', self.view, 'birth_' + pid + '_ss.npy' )
 
         # the old preprocessed files
         #img_dir = os.path.join(self.root_dir, 'output', 'archive', 'ubc_3d', self.view, 'birth_' + pid + '_ss.npy' )
 
-        # Steven Ufkes: I removed the zeroing of negative pixels. I don't konw why we would do that, especially after normalization.
-        img1 = np.load(img_dir1).astype(np.float32)
-        #img1[img1 < 0] = 0 # set black pixels to 0
-        img2 = np.load(img_dir2).astype(np.float32)
-        #img2[img2 < 0] = 0 # set black pixels to 0
-        img3 = np.load(img_dir3).astype(np.float32)
-        #img3[img3 < 0] = 0 # set black pixels to 0
+        print(img_dir)
 
-        min_slices = min(img1.shape[0], img2.shape[0], img3.shape[0])
-        img1 = img1[:min_slices, :, :]
-        img2 = img2[:min_slices, :, :]
-        img3 = img3[:min_slices, :, :]
+        y = self.get_label(pid)
+        covars = self.get_covariates(pid)
+
+        img = np.load(img_dir).astype(np.float32)
+        img[img < 0] = 0 # set black pixels to 0
 
         # stack so 3 channels (RGB)
-        img = torch.tensor(np.stack((img1, img2, img3), axis=1))
+        img = torch.tensor(np.stack((img,) * 3, axis=1))
         # print('Max: {}]\tMin: {}\tShape: {}'.format(img.max(), img.min(), img.shape))
 
         if self.transform is not None:
@@ -146,7 +126,7 @@ class Dataset(Dataset):
             return img, y, covars
 
 
-def get_dataloader(sets, data_dir, view, manifest_path, outcome, return_pid=False, batch_size=1, preprocessed_img_dirs=None):
+def get_dataloader(sets, data_dir, view, manifest_path, outcome, return_pid = False, batch_size=1):
     """
     Takes a list of training sets (ie. any of 'train', 'valid', or 'test) and returns a dictionary of dataloaders.
     TODO: can make the transform more modular (ie. taken as input from command line)
@@ -167,7 +147,6 @@ def get_dataloader(sets, data_dir, view, manifest_path, outcome, return_pid=Fals
                              return_pid = return_pid,
                              outcome=outcome,
                              root_dir=data_dir, manifest_path = manifest_path,
-                             preprocessed_img_dirs = preprocessed_img_dirs,
                              # transform=transforms.Compose([transforms.ToPILImage(),
                              #                               # transforms.RandomHorizontalFlip(),  # default is 50%
                              #                               # transforms.RandomAffine(25,  # rotation
@@ -182,7 +161,6 @@ def get_dataloader(sets, data_dir, view, manifest_path, outcome, return_pid=Fals
                              return_pid = return_pid,
                              outcome=outcome,
                              root_dir=data_dir, manifest_path = manifest_path,
-                             preprocessed_img_dirs = preprocessed_img_dirs,
                              # transform = transforms.Compose([transforms.ToPILImage(),
                              #            transforms.ToTensor()])
                              )

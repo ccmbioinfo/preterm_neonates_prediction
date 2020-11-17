@@ -136,8 +136,7 @@ def mask_multitask_loss(output, ground_truth, criterion = torch.nn.MSELoss()):
     # compute loss for each output and sum
     losses = []
     for i in range(len(output)):
-        #losses.append(criterion(output[i], ground_truth[i])) # Steven Ufkes: This results in a warning about mismatch in size (output[i].size() = [1,1]; ground_truth[i].size() = []), which probably doesn't matter, but is annoying.
-        losses.append(criterion(output[i][0,0], ground_truth[i])) # Steven Ufkes: Hopefully this is a safe fix to the line above.
+        losses.append(criterion(output[i], ground_truth[i]))
     # mt_loss = ([criterion(output[i], ground_truth[i]) for i in range(len(output))])
     print("# of Valid Outputs used in Loss: {}".format(len(losses)))
     # print(losses)
