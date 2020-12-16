@@ -123,7 +123,7 @@ def mask_multitask_loss(output, ground_truth, criterion = torch.nn.MSELoss()):
     ground_truth = ground_truth.flatten()
 
     miss_mask = torch.isnan(ground_truth)
-    
+
     ground_truth = ground_truth[~ miss_mask]  # retain non-NAs
     output = [output[i] for i in range(len(output)) if miss_mask[i] == 0] # tensors have to be in a list, tuple or array
 

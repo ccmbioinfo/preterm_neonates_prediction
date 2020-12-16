@@ -1,5 +1,3 @@
-
-
 import torch
 import torch.nn as nn
 from torchvision import models
@@ -7,7 +5,9 @@ from helpers import set_parameter_requires_grad
 
 class Net(nn.Module):
     #TODO: make robust to number of units before FC layer
-    def __init__(self, mod = 'single', num_heads = 6, model_name = 'resnet18'):
+    def __init__(self, mod = 'single', num_heads = 1, model_name = 'resnet18'):
+        # Steven Ufkes: I think that num_heads should be set to the number of variables in the multitask prediction; it is ignored if task is "regression" or "classification".
+
         super().__init__()
         #TODO: take input as 128 x 128 tensor
         if model_name == 'alexnet':
@@ -34,9 +34,19 @@ class Net(nn.Module):
         #self.model = nn.Sequential(*list(self.model.children())[:-2])
         # https://forums.fast.ai/t/pytorch-best-way-to-get-at-intermediate-layers-in-vgg-and-resnet/5707
 
+        # Steven:
+        model_num_features_last_layer_dict = {'alexnet':256,
+                               'vg11_bn':512,
+                               'resnet50':2048,
+                               'resnet101':2048,
+                               'resnet18':512}
+        num_features_last_layer = model_num_features_last_layer_dict[model_name]
+
         # adaptive pool
         self.gap = nn.AdaptiveAvgPool2d(1)
         #self.lin = nn.Linear(512, 1) # TODO: need to change this depending on which resnet. use a dictionary
+        # Steven: Not sure if this is correct; not sure if the regression task was ever fully set up.
+        self.lin = nn.Linear(num_features_last_layer, 1) # Added by Steven; based on line above which was commented out.
         self.mod = mod
         self.dropout = nn.Dropout(p=0.5)
         self.heads = nn.ModuleList([])
@@ -48,13 +58,7 @@ class Net(nn.Module):
 #                nn.Linear(512, 1) # 256 for alexnet, 512 for vgg and for resnet18, 2048 for resnet50,101, 152
 #                # TODO: make robust to covariates
 #            ))
-        # New:
-        model_num_features_last_layer_dict = {'alexnet':256,
-                               'vg11_bn':512,
-                               'resnet50':2048,
-                               'resnet101':2048,
-                               'resnet18':512}
-        num_features_last_layer = model_num_features_last_layer_dict[model_name]
+
         for n in range(num_heads):
             self.heads.append(nn.Sequential(
                 nn.Linear(num_features_last_layer, 1) # 256 for alexnet, 512 for vgg and for resnet18, 2048 for resnet50,101, 152
@@ -94,5 +98,3 @@ class Net(nn.Module):
         else:
             x = self.lin(x)
             return x
-
-

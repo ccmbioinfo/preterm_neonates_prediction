@@ -61,7 +61,7 @@ def train_and_eval(model, train_loader, valid_loader, learning_rate, epochs,
 
     metric = {'regression':'MSE',
               'classification':'AUC',
-              'multitask': 'MSE'}
+              'multitask': 'MSE'} # Steve: Seems like this is mostly for logging?
 
     # # TODO: reloading checkpoint
     # if restore_chkpt:
@@ -152,9 +152,12 @@ def train_and_eval(model, train_loader, valid_loader, learning_rate, epochs,
             helpers.save_checkpoint(state,
                                   is_best = is_best_val_loss,
                                   checkpoint_dir = model_outdir)
-            if task == 'multitask':
-                train_df.to_csv(os.path.join(model_outdir, 'best_epoch_training_results.csv'))
-                val_df.to_csv(os.path.join(model_outdir, 'best_epoch_validation_results.csv'))
+            #if task == 'multitask': # Steven: Seems like this should work the same if doing regression or classification. I'll try doing the same for regression by commenting out this if statement.
+            #    train_df.to_csv(os.path.join(model_outdir, 'best_epoch_training_results.csv'))
+            #    val_df.to_csv(os.path.join(model_outdir, 'best_epoch_validation_results.csv'))
+            train_df.to_csv(os.path.join(model_outdir, 'best_epoch_training_results.csv'))
+            val_df.to_csv(os.path.join(model_outdir, 'best_epoch_validation_results.csv'))
+
 # the arguments # Steven Ufkes: replaced command line arguments with a JSON config reader.
 #def get_parser():
 #    parser = argparse.ArgumentParser()
@@ -175,23 +178,31 @@ def train_and_eval(model, train_loader, valid_loader, learning_rate, epochs,
 #    return parser
 
 if __name__ == '__main__':
-    # get arguments # Steven Ufkes: replaced command line arguments with a JSON config reader. Did it a goofy way to avoid changing much.
+    # get arguments
+    # Steven Ufkes: replaced command line arguments with a JSON config reader. Did it a goofy way to avoid changing much.
     #args = get_parser().parse_args()
     config_path = str(sys.argv[1])
     with open(config_path, 'r') as f:
         args = json.load(f)
-    class Args(object):
+    class Args(object): # convert the args dictionary to an object with the args as attributes.
         def __init__(self, dictionary):
             for key, value in dictionary.items():
                 setattr(self, key, value)
-    args = Args(args)    
+    args = Args(args)
     print(args)
     ## End of goofy argument change.
-    
+
     torch.manual_seed(1)
 
+    # Check that there is only one outcome if task is regression or classification.
+    if (args.task != 'multitask') and (len(args.outcomes) > 1):
+        raise Exception('If multiple outcomes specified, must use task="multitask".')
+
     # create model outdir if it doesn't already exist, corresponding to task and view
-    model_outdir = os.path.join(args.model_out, args.outcome + '-' + args.view, args.run_name)
+    if args.task == 'multitask': # Steven Ufkes: change method for creating output directory depending on task.
+        model_outdir = os.path.join(args.model_out, 'multitask_' + str(len(args.outcomes)) + '_outcomes-' + args.view, args.run_name)
+    else:
+        model_outdir = os.path.join(args.model_out, args.outcomes[0] + '-' + args.view, args.run_name)
 
     helpers.check_make_dir(model_outdir)
 
@@ -212,7 +223,8 @@ if __name__ == '__main__':
     dataloaders = get_dataloader(sets = ['train', 'valid'],
                                  data_dir = args.root_path, # this must be ..../neuro/!!!!
                                  view = args.view,
-                                 outcome = args.outcome,
+                                 outcomes = args.outcomes,
+                                 task = args.task,
                                  manifest_path = args.manifest_path,
                                  preprocessed_img_dirs = args.preprocessed_img_dirs,
                                  batch_size=1,
@@ -226,9 +238,15 @@ if __name__ == '__main__':
     # the main body
     if args.task == 'multitask':
         #nnet = Net(mod = 'multitask')
-        nnet = Net(mod = 'multitask', model_name = args.model_name) # Steven Ufkes modified the line above 2020-10-29.
+
+        #####
+        # Steven Ufkes modified the line above 2020-10-29.
+        num_heads = len(args.outcomes)
+        nnet = Net(mod = 'multitask', model_name = args.model_name, num_heads = num_heads)
+        #####
     else:
-        nnet = Net()
+        #nnet = Net()
+        nnet = Net(model_name = args.model_name) # Steven Ufkes modified the line above 2020-11-17.
 
     logging.info("Training for {} epoch(s)..".format(args.num_epochs))
     train_and_eval(model = nnet,
@@ -240,4 +258,3 @@ if __name__ == '__main__':
                    model_outdir = model_outdir,
                    task = args.task)
     logging.info("Done!!..\n Please check {} for the results!".format(model_outdir))
-

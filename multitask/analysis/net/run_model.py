@@ -52,7 +52,7 @@ def run_model(model, loader, optimizer, criterion, task, tensorboard, metrics_ev
 
     for image, label, pid, covars in loader:
 
-        # send X,Y and weights (if applicable) to device - only really used for gpu
+        # send X, Y and weights (if applicable) to device - only really used for gpu
         image = image.float().to(device)
         labels = label.float().to(device).flatten().unsqueeze(1)
         covars = covars.float().to(device)
@@ -107,7 +107,13 @@ def run_model(model, loader, optimizer, criterion, task, tensorboard, metrics_ev
             miss_mask = miss_mask.astype(bool)
             # print(miss_mask)
             # print(miss_mask.shape)
-            temp = np.zeros([6]) # whatever the number of outcomes is
+
+            #temp = np.zeros([6]) # whatever the number of outcomes is
+            #####
+            # Steven Ufkes: Changed line above to handle arbitrary number of outcomes.
+            temp = np.zeros(len(loader.dataset.outcomes))
+            #####
+
             temp[temp == 0] = np.NaN # set to NaN
             # print(temp)
             # print(temp.shape)
@@ -116,13 +122,34 @@ def run_model(model, loader, optimizer, criterion, task, tensorboard, metrics_ev
             temp[~miss_mask] = preds_numpy # the indices corresponding to the non-missing outcomes are filled in with the predictions
             temp_list.append(temp)
             pid_list.append(pid[0])
-            col_names = ['bay_cog_comp_sb_18m', 'bay_language_comp_sb_18m','bay_motor_comp_sb_18m',
-                         'bay_cog_comp_sb_33m', 'bay_language_comp_sb_33m', 'bay_motor_comp_sb_33m']
+
+            #col_names = ['bay_cog_comp_sb_18m', 'bay_language_comp_sb_18m', 'bay_motor_comp_sb_18m', 'bay_cog_comp_sb_33m', 'bay_language_comp_sb_33m', 'bay_motor_comp_sb_33m']
+            #####
+            # Steven Ufkes: Get col_names automatically
+            col_names = loader.dataset.outcomes
+            #####
+
             pd.options.display.width = None
             df = pd.DataFrame(temp_list, columns = col_names)
             df['pid'] = pid_list
             # print(df)
+        elif task in ["regression", "classification"]: # Steven: Add this else block to save the predictions to csv. This was not saved before.
+            # Add one row at a time.
+            #temp = np.zeros(1)
+            temp = preds_numpy # assume no missing values for now.
+            temp_list.append(temp)
+            pid_list.append(pid[0])
 
+            #col_names = ["outcome"]
+            #####
+            # Steven Ufkes: Get col_names automatically
+            col_names = loader.dataset.outcomes
+            #####
+
+            pd.options.display.width = None
+            df = pd.DataFrame(temp_list, columns=col_names) # This is going to create a new data frame for each iteration of the loop over subjects; should probably just create the dataframe once. Leave it for now.
+            df['pid'] = pid_list
+            #print(df)
         num_batches += 1
         # if indicated, will print and (eventually) output running auc and average batch loss
         if metrics_every_iter:
@@ -163,4 +190,3 @@ def run_model(model, loader, optimizer, criterion, task, tensorboard, metrics_ev
         epoch_metric = metrics.auc(fpr, tpr)
 
     return epoch_mean_loss, epoch_metric, preds_list, labels_list, df
-
